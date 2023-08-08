@@ -1,12 +1,23 @@
 const Job =require('../models/Job')
 const {StatusCodes} = require('http-status-codes')
-const {BadRequestError} = require('../errors')
+const {BadRequestError, NotFoundError} = require('../errors')
+const notFound = require('../middleware/not-found')
+
 
 const getallJob = async (req,res) => {
-    res.send('Get all jobs')
+    const jobs = await Job.find({createdBy:req.user.userId}).sort('createdAt')
+    res.status(StatusCodes.OK).json({jobs, count:jobs.length})
 }
 const getJob = async (req,res) => {
-    res.send('Get job')
+    const {user:{userId}, params:{id:jobId}} = req
+
+    const job = await Job.findOne({
+        _id:jobId,createdBy:userId
+    })
+    if (!job){
+        throw new NotFoundError(`no job with id ${jobId}`)
+    }
+    res.status(StatusCodes.OK).json({job})
 }
 const CreateJob = async (req,res) => {
     req.body.createdBy = req.user.userId
@@ -15,10 +26,25 @@ const CreateJob = async (req,res) => {
     res.status(StatusCodes.CREATED).json({job})
 }
 const updateJob = async (req,res) => {
-    res.send('Update job')
+    const {user:{userId}, params:{id:jobId}, body:{company,position}} = req
+
+    if (company ==='' || position ==='') {
+        throw new BadRequestError('company or position empty')
+    }
+    const job = await Job.findOneAndUpdate({_id:jobId, createdBy:userId} , req.body, {new:true, runValidators:true})
+    if (!job){
+        throw new NotFoundError(`no job with id ${jobId}`)
+    }
+    res.status(StatusCodes.OK).json({job})
 }
 const DeleteJob = async (req,res) => {
-    res.send('Delete Job')
+    const {user:{userId}, params:{id:jobId}, body:{company,position}} = req
+
+    const job = await Job.findByIdAndRemove({_id:jobId, createdBy:userId})
+    if (!job){
+        throw new NotFoundError(`no job with id ${jobId}`)
+    }
+    res.status(StatusCodes.OK).send()
 }
 module.exports = {
    getJob,
