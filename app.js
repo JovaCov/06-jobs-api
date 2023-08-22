@@ -8,7 +8,7 @@ const rateLimiter = require('express-rate-limit')
 
 const express = require('express');
 const app = express();
-
+app.use(express.static('public'))
 const connectDB = require('./db/connect')
 const authenticateUser = require('./middleware/authentication')
 
